@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="M&S Premier" />
+  <meta name="theme-color" content="#1a1208" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>M &amp; S Premier Home Services</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold: #d4a843;
+      --gold-dim: rgba(212,168,67,0.3);
+      --gold-faint: rgba(212,168,67,0.08);
+      --bg: #0e0e0e;
+      --text: #f0ece0;
+      --muted: #9a8860;
+      --card: rgba(255,255,255,0.04);
+      --border: rgba(212,168,67,0.15);
+      --input-bg: rgba(255,255,255,0.05);
+      --danger: #c0392b;
+      --green: #27ae60;
+    }
+
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      background: linear-gradient(160deg, #1a1208 0%, #0e0e0e 60%, #0a140a 100%);
+      color: var(--text);
+      min-height: 100dvh;
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+    }
+
+    /* ── HEADER ── */
+    #header {
+      background: linear-gradient(90deg, #1c1208, #2a1f0a);
+      border-bottom: 2px solid var(--gold);
+      padding: 14px 18px 12px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    #header-row { display: flex; align-items: center; justify-content: space-between; }
+    #brand { display: flex; align-items: center; gap: 10px; }
+    #brand-icon { font-size: 22px; }
+    #brand-name { font-size: 15px; font-weight: bold; color: var(--gold); line-height: 1.2; }
+    #brand-sub { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; }
+    #new-visit-btn {
+      background: var(--gold); color: #1a1208; border: none;
+      border-radius: 20px; padding: 7px 14px; font-size: 13px;
+      font-weight: bold; cursor: pointer; font-family: inherit;
+      white-space: nowrap;
+    }
+
+    /* ── VIEWS ── */
+    .view { display: none; padding: 18px; }
+    .view.active { display: block; }
+
+    /* ── LIST VIEW ── */
+    #empty-state {
+      text-align: center; padding: 60px 20px;
+    }
+    #empty-state .empty-icon { font-size: 52px; margin-bottom: 16px; }
+    #empty-state .empty-title { font-size: 20px; color: var(--gold); margin-bottom: 8px; }
+    #empty-state .empty-sub { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+    #visits-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .visit-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      position: relative;
+    }
+    .visit-card:active { border-color: var(--gold); }
+    .vc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .vc-name { font-size: 16px; font-weight: bold; color: var(--text); }
+    .vc-date { font-size: 11px; color: var(--muted); white-space: nowrap; margin-top: 2px; }
+    .vc-addr { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .vc-type { display: inline-block; font-size: 11px; background: var(--gold-faint); border: 1px solid var(--gold-dim); color: var(--gold); border-radius: 20px; padding: 2px 10px; margin-top: 8px; }
+    .vc-meta { display: flex; gap: 12px; margin-top: 8px; font-size: 12px; color: #666; }
+    .vc-thumb-row { display: flex; gap: 6px; margin-top: 10px; }
+    .vc-thumb { width: 52px; height: 52px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }
+    .vc-more-photos { width: 52px; height: 52px; border-radius: 6px; background: var(--gold-faint); border: 1px solid var(--gold-dim); display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--gold); }
+
+    /* ── FORM VIEW ── */
+    .form-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .back-btn {
+      background: transparent; border: 1px solid #444; color: var(--muted);
+      border-radius: 8px; padding: 7px 12px; font-size: 13px;
+      cursor: pointer; font-family: inherit;
+    }
+    .form-title { font-size: 20px; font-weight: bold; color: var(--gold); }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    .card-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+      color: var(--gold); text-transform: uppercase; margin-bottom: 14px;
+    }
+
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    label {
+      display: block; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.08em; color: var(--muted);
+      text-transform: uppercase; margin-bottom: 5px;
+    }
+    input, textarea, select {
+      width: 100%; padding: 10px 12px;
+      background: var(--input-bg);
+      border: 1px solid var(--gold-dim);
+      border-radius: 6px; color: var(--text);
+      font-size: 15px; font-family: inherit;
+      outline: none; appearance: none;
+      -webkit-appearance: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--gold); }
+    textarea { resize: vertical; min-height: 80px; }
+    select option { background: #1a1208; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* ── PHOTOS ── */
+    #photo-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+    .photo-wrap { position: relative; }
+    .photo-wrap img {
+      width: 85px; height: 85px; object-fit: cover;
+      border-radius: 8px; border: 2px solid var(--gold); display: block;
+    }
+    .photo-del {
+      position: absolute; top: -7px; right: -7px;
+      background: var(--danger); color: #fff; border: none;
+      border-radius: 50%; width: 22px; height: 22px;
+      font-size: 14px; font-weight: bold; line-height: 22px;
+      text-align: center; cursor: pointer;
+    }
+    #add-photo-btn {
+      width: 85px; height: 85px; border-radius: 8px;
+      border: 2px dashed var(--gold); background: var(--gold-faint);
+      color: var(--gold); font-size: 32px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    #photo-hint { font-size: 12px; color: #555; }
+
+    /* ── SAVE BTN ── */
+    #save-btn {
+      width: 100%; padding: 15px; background: var(--gold);
+      color: #1a1208; border: none; border-radius: 10px;
+      font-size: 16px; font-weight: bold; cursor: pointer;
+      font-family: inherit; margin-bottom: 12px; letter-spacing: 0.03em;
+    }
+    #save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── DETAIL VIEW ── */
+    .detail-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+    .detail-name { font-size: 21px; font-weight: bold; color: var(--gold); }
+    .detail-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .info-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 14px; gap: 12px; }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: var(--muted); flex-shrink: 0; }
+    .info-value { text-align: right; color: var(--text); }
+
+    .notes-box { background: var(--gold-faint); border-radius: 8px; padding: 12px; font-size: 14px; line-height: 1.6; color: #ccc; }
+
+    .detail-photos { display: flex; flex-wrap: wrap; gap: 8px; }
+    .detail-photos img { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; }
+
+    .detail-actions { display: flex; gap: 10px; margin-top: 4px; }
+    .detail-actions button { flex: 1; padding: 13px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; font-family: inherit; border: none; }
+    .btn-edit { background: var(--gold-faint); border: 1px solid var(--gold) !important; color: var(--gold); }
+    .btn-share { background: var(--gold); color: #1a1208; }
+    .btn-delete { background: rgba(192,57,43,0.15); border: 1px solid rgba(192,57,43,0.4) !important; color: #e74c3c; }
+
+    /* ── LIGHTBOX ── */
+    #lightbox {
+      display: none; position: fixed; inset: 0; z-index: 999;
+      background: rgba(0,0,0,0.95);
+      align-items: center; justify-content: center;
+    }
+    #lightbox.show { display: flex; }
+    #lightbox img { max-width: 95vw; max-height: 90dvh; object-fit: contain; border-radius: 6px; }
+    #lightbox-close {
+      position: absolute; top: 16px; right: 16px;
+      background: rgba(255,255,255,0.1); border: none; color: #fff;
+      border-radius: 50%; width: 36px; height: 36px; font-size: 20px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+      background: var(--green); color: #fff; padding: 10px 22px;
+      border-radius: 20px; font-size: 14px; font-weight: bold;
+      opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 200;
+      white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+
+    /* ── SEARCH ── */
+    #search-bar {
+      margin-bottom: 14px;
+    }
+    #search-input {
+      width: 100%; padding: 10px 14px;
+      background: var(--input-bg); border: 1px solid var(--gold-dim);
+      border-radius: 8px; color: var(--text); font-size: 14px;
+      font-family: inherit; outline: none;
+    }
+    #search-input:focus { border-color: var(--gold); }
+
+    @media print {
+      #header, .back-btn, .detail-actions, #lightbox { display: none !important; }
+      body { background: white; color: black; }
+      .card { border: 1px solid #ccc; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <div id="header-row">
+    <div id="brand">
+      <span id="brand-icon">🔨</span>
+      <div>
+        <div id="brand-name">M &amp; S Premier Home Services</div>
+        <div id="brand-sub">SITE VISIT LOG</div>
+      </div>
+    </div>
+    <button id="new-visit-btn" onclick="showForm()">+ New Visit</button>
+  </div>
+</div>
+
+<!-- LIST VIEW -->
+<div id="view-list" class="view active">
+  <div id="search-bar">
+    <input id="search-input" type="search" placeholder="🔍  Search by name, address, or job type..." oninput="renderList()" />
+  </div>
+  <div id="empty-state" style="display:none">
+    <div class="empty-icon">📋</div>
+    <div class="empty-title">No site visits yet</div>
+    <div class="empty-sub">Tap <strong style="color:var(--gold)">+ New Visit</strong> to document<br>your first job site.</div>
+  </div>
+  <div id="visits-list"></div>
+</div>
+
+<!-- FORM VIEW -->
+<div id="view-form" class="view">
+  <div class="form-header">
+    <button class="back-btn" onclick="showList()">← Back</button>
+    <div class="form-title" id="form-title">New Site Visit</div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Customer Information</div>
+    <div class="field"><label>Full Name *</label><input id="f-name" type="text" placeholder="Jane Smith" oninput="checkSave()" /></div>
+    <div class="field"><label>Phone</label><input id="f-phone" type="tel" placeholder="(555) 000-0000" /></div>
+    <div class="field"><label>Email</label><input id="f-email" type="email" placeholder="jane@email.com" /></div>
+    <div class="field"><label>Job Site Address</label><textarea id="f-addr" placeholder="123 Main St, City, State ZIP" style="min-height:60px"></textarea></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Project Details</div>
+    <div class="field">
+      <label>Job Type</label>
+      <select id="f-type">
+        <option value="">Select a category...</option>
+        <option>Carpentry / Framing</option>
+        <option>Plumbing</option>
+        <option>Electrical</option>
+        <option>Painting</option>
+        <option>Drywall</option>
+        <option>Flooring</option>
+        <option>Roofing</option>
+        <option>Landscaping</option>
+        <option>General Repairs</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Visit Date</label><input id="f-date" type="date" /></div>
+      <div class="field"><label>Est. Hours</label><input id="f-hours" type="number" placeholder="e.g. 4" min="0" step="0.5" /></div>
+    </div>
+    <div class="field"><label>Scope of Work</label><textarea id="f-scope" placeholder="Describe what needs to be done..."></textarea></div>
+    <div class="field"><label>Site Conditions / Notes</label><textarea id="f-notes" placeholder="Access issues, existing damage, special instructions..."></textarea></div>
+    <div class="field"><label>Materials Needed</label><textarea id="f-mats" placeholder="List materials to source..." style="min-height:60px"></textarea></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Site Photos</div>
+    <div id="photo-grid">
+      <button id="add-photo-btn" onclick="document.getElementById('photo-input').click()">+</button>
+    </div>
+    <div id="photo-hint">No photos yet. Tap + to use your camera or choose from your library.</div>
+    <input type="file" id="photo-input" accept="image/*" multiple style="display:none" onchange="handlePhotos(event)" />
+  </div>
+
+  <button id="save-btn" onclick="saveVisit()" disabled>Save Site Visit</button>
+  <button id="delete-btn" onclick="deleteVisit()" style="display:none;width:100%;padding:13px;background:transparent;border:1px solid rgba(192,57,43,0.4);color:#e74c3c;border-radius:10px;font-size:14px;cursor:pointer;font-family:inherit;margin-bottom:20px">Delete This Visit</button>
+</div>
+
+<!-- DETAIL VIEW -->
+<div id="view-detail" class="view">
+  <div class="detail-header">
+    <button class="back-btn" onclick="showList()">← Back</button>
+    <div>
+      <div class="detail-name" id="d-name"></div>
+      <div class="detail-meta" id="d-meta"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Customer</div>
+    <div class="info-row"><span class="info-label">Phone</span><span class="info-value" id="d-phone"></span></div>
+    <div class="info-row"><span class="info-label">Email</span><span class="info-value" id="d-email"></span></div>
+    <div class="info-row"><span class="info-label">Address</span><span class="info-value" id="d-addr"></span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Project</div>
+    <div class="info-row"><span class="info-label">Job Type</span><span class="info-value" id="d-type"></span></div>
+    <div class="info-row"><span class="info-label">Visit Date</span><span class="info-value" id="d-date"></span></div>
+    <div class="info-row"><span class="info-label">Est. Hours</span><span class="info-value" id="d-hours"></span></div>
+  </div>
+
+  <div class="card" id="d-scope-card" style="display:none">
+    <div class="card-label">Scope of Work</div>
+    <div class="notes-box" id="d-scope"></div>
+  </div>
+
+  <div class="card" id="d-notes-card" style="display:none">
+    <div class="card-label">Site Conditions / Notes</div>
+    <div class="notes-box" id="d-notes"></div>
+  </div>
+
+  <div class="card" id="d-mats-card" style="display:none">
+    <div class="card-label">Materials Needed</div>
+    <div class="notes-box" id="d-mats"></div>
+  </div>
+
+  <div class="card" id="d-photos-card" style="display:none">
+    <div class="card-label">Site Photos (<span id="d-photo-count">0</span>)</div>
+    <div class="detail-photos" id="d-photos"></div>
+  </div>
+
+  <div class="detail-actions">
+    <button class="btn-edit" onclick="editVisit()">✏️ Edit</button>
+    <button class="btn-share" onclick="shareVisit()">Share</button>
+  </div>
+  <div style="margin-top:10px">
+    <button class="btn-delete" style="width:100%;padding:12px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;" onclick="deleteFromDetail()">Delete Visit</button>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox" onclick="closeLightbox()">
+  <button id="lightbox-close" onclick="closeLightbox()">×</button>
+  <img id="lightbox-img" src="" />
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+  // ── STORAGE ──
+  const STORE_KEY = 'mspremier_visits';
+
+  function loadVisits() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; }
+    catch { return []; }
+  }
+
+  async function saveVisits(visitsArray) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(visitsArray)); }
+    catch(e) { console.error('Save failed', e); }
+  }
+
+  // ── STATE ──
+  let visits = loadVisits();
+  let editingId = null;
+  let formPhotos = [];
+  let currentDetailId = null;
+
+  // ── SERVICE WORKER ──
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  // ── INIT ──
+  renderList();
+
+  // ── VIEWS ──
+  function showList() {
+    setView('view-list');
+    renderList();
+  }
+
+  function showForm(id = null) {
+    editingId = id;
+    formPhotos = [];
+    setView('view-form');
+
+    document.getElementById('form-title').textContent = id ? 'Edit Site Visit' : 'New Site Visit';
+    document.getElementById('delete-btn').style.display = id ? 'block' : 'none';
+
+    // Set today's date default
+    const today = new Date().toISOString().split('T')[0];
+
+    if (id) {
+      const v = visits.find(v => v.id === id);
+      document.getElementById('f-name').value = v.name || '';
+      document.getElementById('f-phone').value = v.phone || '';
+      document.getElementById('f-email').value = v.email || '';
+      document.getElementById('f-addr').value = v.addr || '';
+      document.getElementById('f-type').value = v.type || '';
+      document.getElementById('f-date').value = v.date || today;
+      document.getElementById('f-hours').value = v.hours || '';
+      document.getElementById('f-scope').value = v.scope || '';
+      document.getElementById('f-notes').value = v.notes || '';
+      document.getElementById('f-mats').value = v.mats || '';
+      formPhotos = (v.photos || []).map(p => ({ ...p }));
+    } else {
+      document.getElementById('f-name').value = '';
+      document.getElementById('f-phone').value = '';
+      document.getElementById('f-email').value = '';
+      document.getElementById('f-addr').value = '';
+      document.getElementById('f-type').value = '';
+      document.getElementById('f-date').value = today;
+      document.getElementById('f-hours').value = '';
+      document.getElementById('f-scope').value = '';
+      document.getElementById('f-notes').value = '';
+      document.getElementById('f-mats').value = '';
+    }
+    renderPhotoGrid();
+    checkSave();
+  }
+
+  function showDetail(id) {
+    currentDetailId = id;
+    const v = visits.find(v => v.id === id);
+    if (!v) return showList();
+    setView('view-detail');
+
+    document.getElementById('d-name').textContent = v.name;
+    document.getElementById('d-meta').textContent = `${v.type || 'General'} · ${formatDate(v.date)}`;
+    document.getElementById('d-phone').textContent = v.phone || '—';
+    document.getElementById('d-email').textContent = v.email || '—';
+    document.getElementById('d-addr').textContent = v.addr || '—';
+    document.getElementById('d-type').textContent = v.type || '—';
+    document.getElementById('d-date').textContent = formatDate(v.date);
+    document.getElementById('d-hours').textContent = v.hours ? `${v.hours} hrs` : '—';
+
+    setDetailCard('d-scope-card', 'd-scope', v.scope);
+    setDetailCard('d-notes-card', 'd-notes', v.notes);
+    setDetailCard('d-mats-card', 'd-mats', v.mats);
+
+    // Photos
+    const photos = v.photos || [];
+    if (photos.length > 0) {
+      document.getElementById('d-photos-card').style.display = 'block';
+      document.getElementById('d-photo-count').textContent = photos.length;
+      document.getElementById('d-photos').innerHTML = photos.map((p, i) =>
+        `<img src="${p.dataUrl}" onclick="openLightbox('${v.id}', ${i})" />`
+      ).join('');
+    } else {
+      document.getElementById('d-photos-card').style.display = 'none';
+    }
+  }
+
+  function setDetailCard(cardId, contentId, value) {
+    const card = document.getElementById(cardId);
+    if (value && value.trim()) {
+      card.style.display = 'block';
+      document.getElementById(contentId).textContent = value;
+    } else {
+      card.style.display = 'none';
+    }
+  }
+
+  function setView(id) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  // ── LIST ──
+  function renderList() {
+    const query = (document.getElementById('search-input').value || '').toLowerCase();
+    const filtered = visits.filter(v =>
+      !query ||
+      (v.name || '').toLowerCase().includes(query) ||
+      (v.addr || '').toLowerCase().includes(query) ||
+      (v.type || '').toLowerCase().includes(query)
+    );
+
+    const empty = document.getElementById('empty-state');
+    const list = document.getElementById('visits-list');
+
+    if (visits.length === 0) {
+      empty.style.display = 'block';
+      list.innerHTML = '';
+      return;
+    }
+    empty.style.display = 'none';
+
+    // Sort newest first
+    const sorted = [...filtered].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+    list.innerHTML = sorted.map(v => {
+      const photos = v.photos || [];
+      const thumbs = photos.slice(0, 3).map(p =>
+        `<img class="vc-thumb" src="${p.dataUrl}" />`
+      ).join('');
+      const more = photos.length > 3
+        ? `<div class="vc-more-photos">+${photos.length - 3}</div>` : '';
+
+      return `
+        <div class="visit-card" onclick="showDetail('${v.id}')">
+          <div class="vc-top">
+            <div>
+              <div class="vc-name">${v.name}</div>
+              <div class="vc-addr">${v.addr || 'No address'}</div>
+            </div>
+            <div class="vc-date">${formatDate(v.date)}</div>
+          </div>
+          ${v.type ? `<div class="vc-type">${v.type}</div>` : ''}
+          <div class="vc-meta">
+            ${v.hours ? `<span>⏱ ${v.hours} hrs</span>` : ''}
+            ${photos.length > 0 ? `<span>📷 ${photos.length} photo${photos.length !== 1 ? 's' : ''}</span>` : ''}
+            ${v.scope ? `<span>📝 Notes</span>` : ''}
+          </div>
+          ${photos.length > 0 ? `<div class="vc-thumb-row">${thumbs}${more}</div>` : ''}
+        </div>`;
+    }).join('');
+  }
+
+  // ── PHOTOS ──
+  function handlePhotos(e) {
+    const files = Array.from(e.target.files);
+    let loaded = 0;
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        formPhotos.push({ dataUrl: ev.target.result, name: file.name });
+        loaded++;
+        if (loaded === files.length) renderPhotoGrid();
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  }
+
+  function removeFormPhoto(i) {
+    formPhotos.splice(i, 1);
+    renderPhotoGrid();
+  }
+
+  function renderPhotoGrid() {
+    const grid = document.getElementById('photo-grid');
+    grid.innerHTML = '';
+
+    formPhotos.forEach((p, i) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'photo-wrap';
+      wrap.innerHTML = `<img src="${p.dataUrl}" /><button class="photo-del" onclick="removeFormPhoto(${i})">×</button>`;
+      grid.appendChild(wrap);
+    });
+
+    const addBtn = document.createElement('button');
+    addBtn.id = 'add-photo-btn';
+    addBtn.textContent = '+';
+    addBtn.onclick = () => document.getElementById('photo-input').click();
+    grid.appendChild(addBtn);
+
+    document.getElementById('photo-hint').textContent = formPhotos.length === 0
+      ? 'No photos yet. Tap + to use your camera or choose from your library.'
+      : `${formPhotos.length} photo${formPhotos.length !== 1 ? 's' : ''} added`;
+  }
+
+  // ── SAVE / DELETE ──
+  function checkSave() {
+    const name = document.getElementById('f-name').value.trim();
+    document.getElementById('save-btn').disabled = !name;
+  }
+
+  const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyRcglBcBwnSY4a1xp2PplNr_H1dKCf1xQeNnA12oRjHKtr6tLu0w3BJwAGZV1pN75b/exec';
+
+  async function postToSheets(v) {
+    try {
+      await fetch(SHEETS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: v.date,
+          name: v.name,
+          phone: v.phone,
+          email: v.email,
+          addr: v.addr,
+          type: v.type,
+          hours: v.hours,
+          scope: v.scope,
+          notes: v.notes,
+          mats: v.mats
+        })
+      });
+    } catch(e) {
+      console.warn('Sheets sync failed', e);
+    }
+  }
+
+  async function saveVisit() {
+    const v = {
+      id: editingId || crypto.randomUUID(),
+      createdAt: editingId ? (visits.find(v => v.id === editingId)?.createdAt || Date.now()) : Date.now(),
+      updatedAt: Date.now(),
+      name: document.getElementById('f-name').value.trim(),
+      phone: document.getElementById('f-phone').value.trim(),
+      email: document.getElementById('f-email').value.trim(),
+      addr: document.getElementById('f-addr').value.trim(),
+      type: document.getElementById('f-type').value,
+      date: document.getElementById('f-date').value,
+      hours: document.getElementById('f-hours').value,
+      scope: document.getElementById('f-scope').value.trim(),
+      notes: document.getElementById('f-notes').value.trim(),
+      mats: document.getElementById('f-mats').value.trim(),
+      photos: formPhotos,
+    };
+
+    if (editingId) {
+      visits = visits.map(old => old.id === editingId ? v : old);
+    } else {
+      visits.push(v);
+    }
+
+    await saveVisits(visits);
+    postToSheets(v); // sync to Google Sheets in background
+    showToast(editingId ? 'Visit updated ✓' : 'Visit saved ✓');
+    showList();
+  }
+
+  async function deleteVisit() {
+    if (!confirm('Delete this site visit? This cannot be undone.')) return;
+    visits = visits.filter(v => v.id !== editingId);
+    await saveVisits(visits);
+    showToast('Visit deleted');
+    showList();
+  }
+
+  async function deleteFromDetail() {
+    if (!confirm('Delete this site visit? This cannot be undone.')) return;
+    visits = visits.filter(v => v.id !== currentDetailId);
+    await saveVisits(visits);
+    showToast('Visit deleted');
+    showList();
+  }
+
+  function editVisit() {
+    showForm(currentDetailId);
+  }
+
+  // ── SHARE ──
+  function shareVisit() {
+    const v = visits.find(v => v.id === currentDetailId);
+    if (!v) return;
+    const lines = [
+      `M & S Premier Home Services`,
+      `SITE VISIT — ${formatDate(v.date)}`,
+      ``,
+      `Customer: ${v.name}`,
+      v.phone ? `Phone: ${v.phone}` : '',
+      v.email ? `Email: ${v.email}` : '',
+      v.addr ? `Address: ${v.addr}` : '',
+      ``,
+      v.type ? `Job Type: ${v.type}` : '',
+      v.hours ? `Estimated Hours: ${v.hours}` : '',
+      v.scope ? `\nScope of Work:\n${v.scope}` : '',
+      v.notes ? `\nSite Notes:\n${v.notes}` : '',
+      v.mats ? `\nMaterials Needed:\n${v.mats}` : '',
+    ].filter(Boolean).join('\n');
+
+    if (navigator.share) {
+      navigator.share({ title: `Site Visit — ${v.name}`, text: lines });
+    } else {
+      navigator.clipboard.writeText(lines).then(() => showToast('Copied to clipboard!'));
+    }
+  }
+
+  // ── LIGHTBOX ──
+  function openLightbox(visitId, photoIndex) {
+    const v = visits.find(v => v.id === visitId);
+    if (!v) return;
+    document.getElementById('lightbox-img').src = v.photos[photoIndex].dataUrl;
+    document.getElementById('lightbox').classList.add('show');
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('show');
+  }
+
+  // ── TOAST ──
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // ── UTILS ──
+  function formatDate(dateStr) {
+    if (!dateStr) return '—';
+    const [y, m, d] = dateStr.split('-');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${months[parseInt(m)-1]} ${parseInt(d)}, ${y}`;
+  }
+
+
+</script>
+</body>
+</html>
