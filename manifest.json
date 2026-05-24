@@ -5,8 +5,8 @@
   "start_url": "https://mike-p-s-h.github.io/mspremier-app/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#1a1208",
-  "theme_color": "#1a1208",
+  "background_color": "#0d1b2e",
+  "theme_color": "#0d1b2e",
   "icons": [
     {
       "src": "https://mike-p-s-h.github.io/mspremier-app/icon-192.png",
