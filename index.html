@@ -154,6 +154,40 @@
     }
     #photo-hint { font-size: 12px; color: #555; }
 
+    /* ── CHECKLIST ── */
+    .chk-section { margin-bottom: 14px; }
+    .chk-section:last-child { margin-bottom: 0; }
+    .chk-section-title {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+      color: var(--muted); text-transform: uppercase;
+      margin: 0 0 8px; padding-bottom: 5px;
+      border-bottom: 1px solid var(--border);
+    }
+    .chk-item {
+      display: flex; align-items: center; gap: 11px;
+      padding: 9px 4px; cursor: pointer;
+      border-radius: 6px; user-select: none;
+    }
+    .chk-item:active { background: var(--gold-faint); }
+    .chk-box {
+      flex-shrink: 0; width: 22px; height: 22px;
+      border: 2px solid var(--gold-dim); border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; color: #0d1b2e; transition: all 0.15s;
+    }
+    .chk-item.checked .chk-box { background: var(--gold); border-color: var(--gold); }
+    .chk-label { font-size: 14px; color: var(--text); line-height: 1.35; }
+    .chk-item.checked .chk-label { color: var(--muted); }
+    .chk-progress {
+      font-size: 12px; color: var(--gold); font-weight: 700;
+      float: right; letter-spacing: 0.03em;
+    }
+    .d-chk-row {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: 13px; padding: 5px 0; color: #ccc; line-height: 1.4;
+    }
+    .d-chk-row .tick { color: var(--green); flex-shrink: 0; }
+
     /* ── SAVE BTN ── */
     #save-btn {
       width: 100%; padding: 15px; background: var(--gold);
@@ -255,7 +289,6 @@
     <div class="empty-sub">Tap <strong style="color:var(--gold)">+ New Visit</strong> to document<br>your first job site.</div>
   </div>
   <div id="visits-list"></div>
-  <div style="text-align:center; padding:18px 0 8px; font-size:11px; color:#8a8a8a; letter-spacing:0.5px;">Build v3 · saves to device</div>
 </div>
 
 <!-- FORM VIEW -->
@@ -299,6 +332,11 @@
     <div class="field"><label>Scope of Work</label><textarea id="f-scope" placeholder="Describe what needs to be done..."></textarea></div>
     <div class="field"><label>Site Conditions / Notes</label><textarea id="f-notes" placeholder="Access issues, existing damage, special instructions..."></textarea></div>
     <div class="field"><label>Materials Needed</label><textarea id="f-mats" placeholder="List materials to source..." style="min-height:60px"></textarea></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Inspection Checklist <span class="chk-progress" id="chk-progress"></span></div>
+    <div id="checklist-container"></div>
   </div>
 
   <div class="card">
@@ -352,6 +390,11 @@
   <div class="card" id="d-mats-card" style="display:none">
     <div class="card-label">Materials Needed</div>
     <div class="notes-box" id="d-mats"></div>
+  </div>
+
+  <div class="card" id="d-checklist-card" style="display:none">
+    <div class="card-label">Inspection Checklist (<span id="d-chk-count">0</span>)</div>
+    <div id="d-checklist"></div>
   </div>
 
   <div class="card" id="d-photos-card" style="display:none">
@@ -443,11 +486,48 @@
     return true;
   }
 
+  // ── INSPECTION CHECKLIST DEFINITION ──
+  // Edit this to change what appears on the checklist. Each item needs a
+  // unique id (used as the storage key) and a label. Keep ids stable so
+  // saved visits keep matching up after you tweak labels.
+  const CHECKLIST = [
+    { section: 'Measurements & Access', items: [
+      { id: 'dims',        label: 'Room/area dimensions recorded (L×W×H)' },
+      { id: 'photos_all',  label: 'Photographed all relevant areas' },
+      { id: 'access',      label: 'Access clear / obstructions noted' },
+      { id: 'staging',     label: 'Parking & material staging identified' },
+      { id: 'clearance',   label: 'Ceiling height & doorway clearances' },
+    ]},
+    { section: 'Utilities & Conditions', items: [
+      { id: 'water_shut',  label: 'Water shutoff located' },
+      { id: 'panel',       label: 'Electrical panel located / capacity noted' },
+      { id: 'gas_shut',    label: 'Gas shutoff located (if applicable)' },
+      { id: 'damage',      label: 'Existing damage documented' },
+      { id: 'water_mold',  label: 'Signs of water / mold / pest checked' },
+      { id: 'haz',         label: 'Asbestos / lead concern (older home)' },
+      { id: 'structural',  label: 'Structural concerns noted' },
+    ]},
+    { section: 'Materials & Scope', items: [
+      { id: 'cust_mats',   label: 'Customer supplying any materials' },
+      { id: 'special',     label: 'Special-order / long lead items' },
+      { id: 'disposal',    label: 'Disposal / haul-away needed' },
+      { id: 'dumpster',    label: 'Dumpster required' },
+      { id: 'permit',      label: 'Permit likely required' },
+    ]},
+    { section: 'Expectations & Decision', items: [
+      { id: 'decision',    label: 'Decision-maker present today' },
+      { id: 'second',      label: 'Second decision-maker to consult' },
+      { id: 'present_ok',  label: 'Customer present during work OK' },
+      { id: 'pets',        label: 'Pets / children on site' },
+    ]},
+  ];
+
   // ── STATE ──
   let visits = [];
   let editingId = null;
   let formPhotos = [];
   let currentDetailId = null;
+  let formChecklist = {};  // { itemId: true } for checked items
 
   // ── SERVICE WORKER ──
   if ('serviceWorker' in navigator) {
@@ -491,6 +571,7 @@
       document.getElementById('f-notes').value = v.notes || '';
       document.getElementById('f-mats').value = v.mats || '';
       formPhotos = (v.photos || []).map(p => ({ ...p }));
+      formChecklist = { ...(v.checklist || {}) };
     } else {
       document.getElementById('f-name').value = '';
       document.getElementById('f-phone').value = '';
@@ -503,8 +584,10 @@
       document.getElementById('f-scope').value = '';
       document.getElementById('f-notes').value = '';
       document.getElementById('f-mats').value = '';
+      formChecklist = {};
     }
     renderPhotoGrid();
+    renderChecklist();
     checkSave();
   }
 
@@ -527,6 +610,23 @@
     setDetailCard('d-scope-card', 'd-scope', v.scope);
     setDetailCard('d-notes-card', 'd-notes', v.notes);
     setDetailCard('d-mats-card', 'd-mats', v.mats);
+
+    // Inspection checklist — show only the items that were checked
+    const chk = v.checklist || {};
+    const checkedItems = [];
+    CHECKLIST.forEach(sec => sec.items.forEach(it => {
+      if (chk[it.id]) checkedItems.push(it.label);
+    }));
+    const chkCard = document.getElementById('d-checklist-card');
+    if (checkedItems.length > 0) {
+      chkCard.style.display = 'block';
+      document.getElementById('d-chk-count').textContent = checkedItems.length;
+      document.getElementById('d-checklist').innerHTML = checkedItems.map(l =>
+        `<div class="d-chk-row"><span class="tick">✓</span><span>${l}</span></div>`
+      ).join('');
+    } else {
+      chkCard.style.display = 'none';
+    }
 
     // Photos
     const photos = v.photos || [];
@@ -657,6 +757,35 @@
     renderPhotoGrid();
   }
 
+  // ── INSPECTION CHECKLIST ──
+  function renderChecklist() {
+    const c = document.getElementById('checklist-container');
+    c.innerHTML = CHECKLIST.map(sec => `
+      <div class="chk-section">
+        <div class="chk-section-title">${sec.section}</div>
+        ${sec.items.map(it => {
+          const on = !!formChecklist[it.id];
+          return `<div class="chk-item ${on ? 'checked' : ''}" onclick="toggleCheck('${it.id}')">
+            <div class="chk-box">${on ? '✓' : ''}</div>
+            <div class="chk-label">${it.label}</div>
+          </div>`;
+        }).join('')}
+      </div>`).join('');
+    updateChkProgress();
+  }
+
+  function toggleCheck(id) {
+    if (formChecklist[id]) delete formChecklist[id];
+    else formChecklist[id] = true;
+    renderChecklist();
+  }
+
+  function updateChkProgress() {
+    const total = CHECKLIST.reduce((n, s) => n + s.items.length, 0);
+    const done = Object.keys(formChecklist).length;
+    document.getElementById('chk-progress').textContent = `${done}/${total}`;
+  }
+
   function renderPhotoGrid() {
     const grid = document.getElementById('photo-grid');
     grid.innerHTML = '';
@@ -689,6 +818,11 @@
 
   async function postToSheets(v) {
     try {
+      const chk = v.checklist || {};
+      const checkedLabels = [];
+      CHECKLIST.forEach(sec => sec.items.forEach(it => {
+        if (chk[it.id]) checkedLabels.push(it.label);
+      }));
       await fetch(SHEETS_URL, {
         method: 'POST',
         mode: 'no-cors',
@@ -704,7 +838,8 @@
           hours: v.hours,
           scope: v.scope,
           notes: v.notes,
-          mats: v.mats
+          mats: v.mats,
+          checklist: checkedLabels.join('; ')
         })
       });
     } catch(e) {
@@ -729,6 +864,7 @@
       notes: document.getElementById('f-notes').value.trim(),
       mats: document.getElementById('f-mats').value.trim(),
       photos: formPhotos,
+      checklist: { ...formChecklist },
     };
 
     if (editingId) {
@@ -781,6 +917,11 @@
   function shareVisit() {
     const v = visits.find(v => v.id === currentDetailId);
     if (!v) return;
+    const chk = v.checklist || {};
+    const checked = [];
+    CHECKLIST.forEach(sec => sec.items.forEach(it => {
+      if (chk[it.id]) checked.push(`  ✓ ${it.label}`);
+    }));
     const lines = [
       `M & S Premier Home Services`,
       `SITE VISIT — ${formatDate(v.date)}`,
@@ -796,6 +937,7 @@
       v.scope ? `\nScope of Work:\n${v.scope}` : '',
       v.notes ? `\nSite Notes:\n${v.notes}` : '',
       v.mats ? `\nMaterials Needed:\n${v.mats}` : '',
+      checked.length ? `\nInspection Checklist:\n${checked.join('\n')}` : '',
     ].filter(Boolean).join('\n');
 
     if (navigator.share) {

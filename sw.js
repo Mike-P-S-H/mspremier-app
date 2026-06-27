@@ -25,32 +25,11 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  const req = e.request;
-  const isHTML = req.mode === 'navigate'
-    || req.url.endsWith('/')
-    || req.url.endsWith('/index.html');
-
-  if (isHTML) {
-    // Stale-while-revalidate: serve the cached app instantly (fast + offline),
-    // but fetch a fresh copy in the background so the next launch is up to date.
-    e.respondWith(
-      caches.open(CACHE).then(cache =>
-        cache.match(req).then(cached => {
-          const network = fetch(req)
-            .then(res => { cache.put(req, res.clone()); return res; })
-            .catch(() => cached);
-          return cached || network;
-        })
-      )
-    );
-  } else {
-    // Cache-first for static assets (icons, manifest).
-    e.respondWith(
-      caches.match(req).then(cached => cached || fetch(req).then(res => {
-        const clone = res.clone();
-        caches.open(CACHE).then(c => c.put(req, clone));
-        return res;
-      }))
-    );
-  }
+  e.respondWith(
+    caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
+      const clone = res.clone();
+      caches.open(CACHE).then(c => c.put(e.request, clone));
+      return res;
+    }))
+  );
 });
